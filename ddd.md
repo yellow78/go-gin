@@ -34,6 +34,8 @@
 │   ├── /logger          # 日誌封裝
 │   └── /config          # 配置管理
 │
+├── /migrations          # 資料庫 schema 管理
+│
 ├── go.mod               # Go 模組定義
 ├── go.sum
 └── README.md            # 專案說明

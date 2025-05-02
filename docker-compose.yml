@@ -7,4 +7,58 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - GO_ENV=production
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=digimon
+      - DB_PASSWORD=digimon123
+      - DB_NAME=digimon_game
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - GO_ENV=develop
+    depends_on:
+      - mysql
+      - redis
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: digimon_game
+      MYSQL_USER: digimon
+      MYSQL_PASSWORD: digimon123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=mysql
+      - MYSQL_ROOT_PASSWORD=rootpass
+    depends_on:
+      - mysql
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: always
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8082:8081"
+    depends_on:
+      - redis
+
+volumes:
+  mysql-data:
+  redis-data:
