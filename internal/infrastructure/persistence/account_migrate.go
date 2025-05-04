@@ -1,11 +1,13 @@
 package persistence
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	pkgsql "go-gin/pkg/db"
+
+	mysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -13,15 +15,29 @@ import (
 
 func RunMigrations() {
 	// ⚙️ 1. 設定資料庫連線
-	dsn := "digimon:digimon123@tcp(localhost:3306)/digimon_game?multiStatements=true"
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+	sqlconfig := mysqldriver.Config{
+		User:                 "digimon",
+		Passwd:               "digimon123",
+		Net:                  "tcp",
+		Addr:                 "localhost:3306",
+		DBName:               "digimon_game",
+		ParseTime:            true,
+		Loc:                  time.Local,
+		AllowNativePasswords: true,
 	}
-	defer db.Close()
+
+	dbManger := pkgsql.NewDBManager()
+	dbManger.InitDB(&sqlconfig, "digimon")
+
+	digimonDB, ok := dbManger.GetDB("digimon")
+	if !ok {
+		log.Fatalf("failed to get database connection")
+	}
+
+	defer digimonDB.Close()
 
 	// ⚙️ 2. 設定 migrate database driver
-	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	driver, err := mysql.WithInstance(digimonDB, &mysql.Config{})
 	if err != nil {
 		log.Fatalf("failed to create migration driver: %v", err)
 	}

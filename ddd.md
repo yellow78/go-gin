@@ -15,11 +15,11 @@
 │   │   │   ├── /valueobject     # 值物件（Value Object）
 │   │   │   └── /aggregate       # 聚合（Aggregate）
 │   │   ├── /repository  # 定義存取接口（介面）
-│   │   └── /service     # 領域服務
+│   │   └── /service     # 領域服務 封裝可重用的邏輯片段（業務或技術）
 │   │
 │   ├── /application     # 應用層：用戶案例和應用服務
 │   │   ├── /dto         # 資料傳輸物件
-│   │   └── /service     # 應用服務
+│   │   └── /usecase     # 應用服務 實現「一個具體的應用場景或使用流程」
 │   │
 │   ├── /infrastructure  # 基礎設施層
 │   │   ├── /persistence # 實作存取層（資料庫）

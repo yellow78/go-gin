@@ -1,7 +1,7 @@
 package http
 
 import (
-	applicationService "go-gin/internal/application/service"
+	applicationService "go-gin/internal/application/usecase"
 	domainService "go-gin/internal/domain/service"
 	"go-gin/internal/infrastructure/persistence"
 	"net/http"
