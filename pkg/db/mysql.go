@@ -2,7 +2,7 @@ package mysql
 
 import (
 	"database/sql"
-	"log"
+	"errors"
 	"sync"
 
 	"github.com/go-sql-driver/mysql"
@@ -10,42 +10,40 @@ import (
 
 type DBManager struct {
 	dbMap   map[string]*sql.DB
-	syncMap map[string]*sync.Once
-	mu      sync.Mutex
+	onceMap sync.Map // map[string]*sync.Once
+	mu      sync.RWMutex
 }
 
 func NewDBManager() *DBManager {
 	return &DBManager{
-		dbMap:   make(map[string]*sql.DB),
-		syncMap: make(map[string]*sync.Once),
+		dbMap: make(map[string]*sql.DB),
 	}
 }
 
-func (m *DBManager) InitDB(cfg *mysql.Config, name string) {
-	m.mu.Lock()
-	if _, ok := m.syncMap[name]; !ok {
-		m.syncMap[name] = &sync.Once{}
-	}
-	once := m.syncMap[name]
-	m.mu.Unlock()
+func (m *DBManager) InitDB(cfg *mysql.Config, name string) error {
+	val, _ := m.onceMap.LoadOrStore(name, &sync.Once{})
+	once := val.(*sync.Once)
 
+	var initErr error
 	once.Do(func() {
 		connector, err := mysql.NewConnector(cfg)
 		if err != nil {
-			log.Fatalf("failed to create connector: %v", err)
+			initErr = err
+			return
 		}
 
 		db := sql.OpenDB(connector)
 		if err := db.Ping(); err != nil {
-			log.Fatalf("failed to ping database: %v", err)
+			initErr = err
+			return
 		}
 
 		m.mu.Lock()
+		defer m.mu.Unlock()
 		m.dbMap[name] = db
-		m.mu.Unlock()
-
-		log.Printf("Database %s connected (via OpenDB)", name)
 	})
+
+	return initErr
 }
 
 func (d *DBManager) GetDB(name string) (*sql.DB, bool) {
@@ -55,31 +53,35 @@ func (d *DBManager) GetDB(name string) (*sql.DB, bool) {
 	return db, ok
 }
 
-func (d *DBManager) CloseDB(name string) {
+func (d *DBManager) CloseDB(name string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if db, ok := d.dbMap[name]; ok {
-		if err := db.Close(); err != nil {
-			log.Printf("failed to close database %s: %v", name, err)
-		} else {
-			log.Printf("Database %s closed", name)
-		}
-		delete(d.dbMap, name)
-		delete(d.syncMap, name)
+
+	db, ok := d.dbMap[name]
+	if !ok {
+		return errors.New("database not found")
 	}
+
+	if err := db.Close(); err != nil {
+		return err
+	}
+
+	delete(d.dbMap, name)
+	d.onceMap.Delete(name)
+	return nil
 }
 
-func (d *DBManager) CloseAll() {
+func (d *DBManager) CloseAll() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	for name, db := range d.dbMap {
-		if err := db.Close(); err != nil {
-			log.Printf("failed to close database %s: %v", name, err)
-		} else {
-			log.Printf("Database %s closed", name)
-		}
-	}
 
-	d.dbMap = make(map[string]*sql.DB)
-	d.syncMap = make(map[string]*sync.Once)
+	var firstErr error
+	for name, db := range d.dbMap {
+		if err := db.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+		delete(d.dbMap, name)
+		d.onceMap.Delete(name)
+	}
+	return firstErr
 }
