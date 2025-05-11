@@ -6,7 +6,7 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "${workspaceFolder}/cmd/tool/main.go",
+            "program": "${workspaceFolder}/cmd/api/main.go",
             "env": {},
             "args": [],
             "showLog": true

@@ -2,9 +2,9 @@ package persistence
 
 import "go-gin/internal/domain/model/entity"
 
-type UserRepository struct{}
+type UserTestRepository struct{}
 
-func NewUserRepository() *UserRepository {
+func NewUserTestRepository() *UserRepository {
 	return &UserRepository{}
 }
 

@@ -11,7 +11,7 @@ import (
 
 func NewRouter() *gin.Engine {
 	r := gin.Default()
-	userRepo := persistence.NewUserRepository()
+	userRepo := persistence.NewUserTestRepository()
 	userService := domainService.NewUserService(userRepo)
 	userAppService := applicationService.NewUserApplicationService(userService)
 	r.GET("/users", func(c *gin.Context) {

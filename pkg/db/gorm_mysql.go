@@ -12,19 +12,27 @@ import (
 	"gorm.io/driver/mysql"
 )
 
-type gromManager struct {
-	gromMap map[string]*gorm.DB
+// GormManager 是 GORM 實例的管理介面，支援多資料庫名稱註冊
+type GormManager interface {
+	InitDBWithConfig(cfg *mysql.Config, name string, gormCfg ...*gorm.Config) error
+	GetDB(name string) (*gorm.DB, bool)
+	CloseDB(name string) error
+	CloseAll() error
+}
+
+type gormManager struct {
+	gormMap map[string]*gorm.DB
 	onceMap sync.Map // map[string]*sync.Once
 	mu      sync.RWMutex
 }
 
-func NewGromManager() *gromManager {
-	return &gromManager{
-		gromMap: make(map[string]*gorm.DB),
+func NewGormManager() *gormManager {
+	return &gormManager{
+		gormMap: make(map[string]*gorm.DB),
 	}
 }
 
-func (g *gromManager) InitDBWithConfig(cfg *mysqldriver.Config, name string, gormCfg ...*gorm.Config) error {
+func (g *gormManager) InitDBWithConfig(cfg *mysqldriver.Config, name string, gormCfg ...*gorm.Config) error {
 	val, _ := g.onceMap.LoadOrStore(name, &sync.Once{})
 	once := val.(*sync.Once)
 
@@ -60,25 +68,25 @@ func (g *gromManager) InitDBWithConfig(cfg *mysqldriver.Config, name string, gor
 		}
 
 		g.mu.Lock()
-		g.gromMap[name] = db
+		g.gormMap[name] = db
 		g.mu.Unlock()
 	})
 
 	return initErr
 }
 
-func (g *gromManager) GetDB(name string) (*gorm.DB, bool) {
+func (g *gormManager) GetDB(name string) (*gorm.DB, bool) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	db, ok := g.gromMap[name]
+	db, ok := g.gormMap[name]
 	return db, ok
 }
 
-func (g *gromManager) CloseDB(name string) error {
+func (g *gormManager) CloseDB(name string) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	db, ok := g.gromMap[name]
+	db, ok := g.gormMap[name]
 	if !ok {
 		return errors.New("database not found")
 	}
@@ -92,24 +100,24 @@ func (g *gromManager) CloseDB(name string) error {
 		return fmt.Errorf("close failed: %w", err)
 	}
 
-	delete(g.gromMap, name)
+	delete(g.gormMap, name)
 	g.onceMap.Delete(name)
 	return nil
 }
 
-func (g *gromManager) CloseAll() error {
+func (g *gormManager) CloseAll() error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	var firstErr error
-	for name, db := range g.gromMap {
+	for name, db := range g.gormMap {
 		sqlDB, err := db.DB()
 		if err != nil && firstErr == nil {
 			firstErr = fmt.Errorf("get sql.DB for %s failed: %w", name, err)
 		} else if closeErr := sqlDB.Close(); closeErr != nil && firstErr == nil {
 			firstErr = fmt.Errorf("close %s failed: %w", name, closeErr)
 		}
-		delete(g.gromMap, name)
+		delete(g.gormMap, name)
 		g.onceMap.Delete(name)
 	}
 	return firstErr

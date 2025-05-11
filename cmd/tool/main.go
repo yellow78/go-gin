@@ -1,7 +1,7 @@
 package main
 
-import "go-gin/internal/infrastructure/persistence"
+import "go-gin/internal/infrastructure/migrations"
 
 func main() {
-	persistence.RunMigrations()
+	migrations.RunMigrations()
 }
