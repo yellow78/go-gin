@@ -1,0 +1,15 @@
+-- Create digimon_moves table
+CREATE TABLE IF NOT EXISTS digimon_moves (
+    id CHAR(36) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    power INT NOT NULL DEFAULT 0,
+    accuracy INT NOT NULL DEFAULT 100,
+    move_type VARCHAR(50) NOT NULL,
+    mp_cost INT NOT NULL DEFAULT 0,
+    target VARCHAR(50) NOT NULL,
+    base_crit_chance INT NOT NULL DEFAULT 5,
+    effect VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
