@@ -3,13 +3,15 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"go-gin/pkg/config"
-	"go-gin/pkg/database/pkgsql"
-	"go-gin/pkg/driver/mysqldriver"
+	pkgsql "go-gin/pkg/db"
+
+	mysqldriver "github.com/go-sql-driver/mysql"
 
 	accountUsecase "go-gin/internal/application/account/usecase" // Usecase for account
-	authUsecase "go-gin/internal/application/auth/usecase"    // Usecase for auth
+	authUsecase "go-gin/internal/application/auth/usecase"       // Usecase for auth
 	"go-gin/internal/infrastructure/persistence"
 	accountHttp "go-gin/internal/interfaces/http/account" // HTTP handlers for account
 	authHttp "go-gin/internal/interfaces/http/auth"       // HTTP handlers for auth
@@ -32,23 +34,26 @@ func main() {
 	// Initialize database connection
 	// Note: Using mysqldriver.Config for db configuration
 	dbConfig := mysqldriver.Config{
-		Host:     cfg.DBHost,
-		Port:     cfg.DBPort,
-		Username: cfg.DBUser,
-		Password: cfg.DBPassword,
-		DBName:   cfg.DBName,
+		User:                 cfg.DBUser,
+		Passwd:               cfg.DBPassword,
+		Net:                  "tcp",
+		Addr:                 cfg.DBHost + ":" + cfg.DBPort,
+		DBName:               cfg.DBName,
+		ParseTime:            true,
+		Loc:                  time.Local,
+		AllowNativePasswords: true,
 	}
 
 	gormManager := pkgsql.NewGormManager()
 	// Initialize DB with the specific configuration
-	if err := gormManager.InitDBWithConfig(&dbConfig); err != nil {
+	if err := gormManager.InitDBWithConfig(&dbConfig, cfg.DBName); err != nil {
 		log.Fatalf("Failed to initialize database connection: %v", err)
 	}
 
 	// Get the default DB instance (or specific one if needed)
-	defaultDB, err := gormManager.GetDB(cfg.DBName) // Using DBName from config to get the specific DB
-	if err != nil {
-		log.Fatalf("Failed to get database instance for %s: %v", cfg.DBName, err)
+	defaultDB, ok := gormManager.GetDB(cfg.DBName) // Using DBName from config to get the specific DB
+	if !ok {
+		log.Fatalf("Failed to get database instance for %s", cfg.DBName)
 	}
 
 	// Initialize repositories
