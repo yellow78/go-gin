@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"log"
 	"net/http" // For http.StatusOK and other constants
-
-	"go-gin/pkg/config"
-	"go-gin/pkg/database/pkgsql"
-	"go-gin/pkg/driver/mysqldriver"
+	"time"
 
 	accountUsecase "go-gin/internal/application/account/usecase"
 	authUsecase "go-gin/internal/application/auth/usecase"
 	digimonUsecase "go-gin/internal/application/game/usecase" // New import for Digimon usecases
+	"go-gin/pkg/config"
+	pkgsql "go-gin/pkg/db"
+
+	mysqldriver "github.com/go-sql-driver/mysql"
 
 	"go-gin/internal/infrastructure/persistence"
 	// digimonPersistence is not explicitly aliased as persistence is already used for account.
@@ -22,7 +23,7 @@ import (
 
 	accountHttp "go-gin/internal/interfaces/http/account"
 	authHttp "go-gin/internal/interfaces/http/auth"
-	digimonHttp "go-gin/internal/interfaces/http/game"       // New import for Digimon controller
+	digimonHttp "go-gin/internal/interfaces/http/game" // New import for Digimon controller
 	"go-gin/internal/interfaces/http/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -37,19 +38,26 @@ func main() {
 
 	// 2. Initialize DB
 	dbConfig := mysqldriver.Config{
-		Host:     cfg.DBHost,
-		Port:     cfg.DBPort,
-		Username: cfg.DBUser,
-		Password: cfg.DBPassword,
-		DBName:   cfg.DBName,
+		User:                 cfg.DBUser,
+		Passwd:               cfg.DBPassword,
+		Net:                  "tcp",
+		Addr:                 cfg.DBHost + ":" + cfg.DBPort,
+		DBName:               cfg.DBName,
+		ParseTime:            true,
+		Loc:                  time.Local,
+		AllowNativePasswords: true,
 	}
+
 	gormManager := pkgsql.NewGormManager()
-	if err := gormManager.InitDBWithConfig(&dbConfig); err != nil {
+	// Initialize DB with the specific configuration
+	if err := gormManager.InitDBWithConfig(&dbConfig, cfg.DBName); err != nil {
 		log.Fatalf("Failed to initialize database connection: %v", err)
 	}
-	defaultDB, err := gormManager.GetDB(cfg.DBName)
-	if err != nil {
-		log.Fatalf("Failed to get database instance for %s: %v", cfg.DBName, err)
+
+	// Get the default DB instance (or specific one if needed)
+	defaultDB, ok := gormManager.GetDB(cfg.DBName) // Using DBName from config to get the specific DB
+	if !ok {
+		log.Fatalf("Failed to get database instance for %s", cfg.DBName)
 	}
 
 	// 3. Setup Account components

@@ -1,6 +1,6 @@
 package game
 
-import "time" // If needed for any date fields in DTOs, e.g. AcquiredAt
+// If needed for any date fields in DTOs, e.g. AcquiredAt
 
 // AcquireDigimonRequest is used when a player wants to acquire a new Digimon.
 type AcquireDigimonRequest struct {
@@ -28,14 +28,14 @@ type DigimonSpeciesResponse struct {
 
 // DigimonResponse represents the data for a player-owned Digimon.
 type DigimonResponse struct {
-	ID                string                 `json:"id"`
-	PlayerID          string                 `json:"player_id"`
-	Nickname          string                 `json:"nickname,omitempty"`
-	CurrentLevel      int                    `json:"current_level"`
-	CurrentAttack     int                    `json:"current_attack"`
-	CurrentDefense    int                    `json:"current_defense"`
-	CurrentSpeed      int                    `json:"current_speed"`
-	ExperiencePoints  int64                  `json:"experience_points"`
-	AcquiredAt        string                 `json:"acquired_at"` // RFC3339 formatted
-	Species           DigimonSpeciesResponse `json:"species"`     // Embed species details
+	ID               string                 `json:"id"`
+	PlayerID         string                 `json:"player_id"`
+	Nickname         string                 `json:"nickname,omitempty"`
+	CurrentLevel     int                    `json:"current_level"`
+	CurrentAttack    int                    `json:"current_attack"`
+	CurrentDefense   int                    `json:"current_defense"`
+	CurrentSpeed     int                    `json:"current_speed"`
+	ExperiencePoints int64                  `json:"experience_points"`
+	AcquiredAt       string                 `json:"acquired_at"` // RFC3339 formatted
+	Species          DigimonSpeciesResponse `json:"species"`     // Embed species details
 }
