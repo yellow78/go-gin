@@ -24,12 +24,18 @@ func (u *UserUsecase) CreateUser(req *account.CreateUserRequest) (*account.UserR
 		return nil, err
 	}
 
+	now := time.Now()
 	user := &entity.User{
-		ID:           uuid.NewString(),
-		Username:     req.Username,
-		Email:        req.Email,
-		PasswordHash: string(hashedPassword),
-		CreatedAt:    time.Now(),
+		ID:               uuid.NewString(),
+		Username:         req.Username,
+		Email:            req.Email,
+		PasswordHash:     string(hashedPassword),
+		CreatedAt:        now,
+		UpdatedAt:        now, // Explicitly set, GORM's autoUpdateTime will also manage this on updates
+		InGameName:       req.Username, // Default InGameName to Username as per instruction
+		Level:            1,            // Default Level
+		ExperiencePoints: 0,            // Default ExperiencePoints
+		// LastLoginAt is left as zero value (time.Time{}), which will be NULL in DB if field is nullable
 	}
 
 	if err := u.UserRepo.Create(user); err != nil {
@@ -37,9 +43,23 @@ func (u *UserUsecase) CreateUser(req *account.CreateUserRequest) (*account.UserR
 	}
 
 	return &account.UserResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		ID:               user.ID,
+		Username:         user.Username,
+		Email:            user.Email,
+		CreatedAt:        user.CreatedAt.Format(time.RFC3339),
+		InGameName:       user.InGameName,
+		Level:            user.Level,
+		ExperiencePoints: user.ExperiencePoints,
+		LastLoginAt:      formatLastLoginAt(user.LastLoginAt),
 	}, nil
+}
+
+// formatLastLoginAt formats the LastLoginAt time.
+// If the time is zero (meaning it hasn't been set), it returns an empty string.
+// This works well with `omitempty` in the DTO.
+func formatLastLoginAt(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format(time.RFC3339)
 }
