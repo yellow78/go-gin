@@ -3,19 +3,16 @@ package account
 import (
 	"go-gin/internal/application/account/usecase"
 	"go-gin/internal/application/dto/account"
-	"log"
-	"time"
-
-	pkgsql "go-gin/pkg/db"
-
-	"go-gin/internal/infrastructure/persistence"
 
 	"github.com/gin-gonic/gin"
-	mysqldriver "github.com/go-sql-driver/mysql"
 )
 
 type UserController struct {
 	UserUsecase *usecase.UserUsecase
+}
+
+func NewAccountController(userUsecase *usecase.UserUsecase) *UserController {
+	return &UserController{UserUsecase: userUsecase}
 }
 
 // RegisterRoutes 註冊所有的路由
@@ -34,32 +31,9 @@ func (u *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	mgr := pkgsql.NewGormManager()
-
-	sqlconfig := mysqldriver.Config{
-		User:                 "digimon",
-		Passwd:               "digimon123",
-		Net:                  "tcp",
-		Addr:                 "localhost:3306",
-		DBName:               "digimon_game",
-		ParseTime:            true,
-		Loc:                  time.Local,
-		AllowNativePasswords: true,
-	}
-
-	err := mgr.InitDBWithConfig(&sqlconfig, "default")
-	if err != nil {
-		log.Fatalf("DB init failed: %v", err)
-	}
-
-	db, _ := mgr.GetDB("default")
-
-	userRepo := persistence.NewUserRepository(db)
-	u.UserUsecase = usecase.NewUserUsecase(userRepo)
-
 	res, err := u.UserUsecase.CreateUser(&req)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": "Failed to create user: " + err.Error()})
 		return
 	}
 
